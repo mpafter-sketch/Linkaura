@@ -1,20 +1,77 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# ConnectX 🚀
 
-# Run and deploy your AI Studio app
+ConnectX is a modern social networking platform inspired by apps like Nearby. It allows users to connect, chat, share posts, send virtual gifts, and compete on leaderboards.
 
-This contains everything you need to run your app locally.
+## ✨ Features
 
-View your app in AI Studio: https://ai.studio/apps/e3f4d8ac-b823-4e27-bf6d-e1c9cc7ae05d
+- 🔐 User Authentication
+- 👤 User Profiles
+- 📝 Social Feed
+- ❤️ Like & Comment System
+- 👥 Follow / Unfollow
+- 💬 Real-time Chat
+- 🔔 Notifications
+- 💰 Wallet
+- 🪙 Coins System
+- 🎁 Virtual Gifts
+- 🏆 Rankings
+- 👑 VIP Membership
+- 🛡️ Admin Dashboard
 
-## Run Locally
+## 🛠️ Tech Stack
 
-**Prerequisites:**  Node.js
+- React
+- Vite
+- TypeScript
+- Supabase
+- Firebase Studio
+- GitHub
 
+## 🚀 Getting Started
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Clone the repository:
+
+```bash
+git clone https://github.com/mpafter-sketch/nextmeet.git
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create a `.env.local` file and add your environment variables:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=YOUR_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+```
+
+Run the development server:
+
+```bash
+npm run dev
+```
+
+## 📌 Project Status
+
+🚧 Currently in active development.
+
+## 📅 Roadmap
+
+- [x] Authentication
+- [x] User Profiles
+- [x] Follow System
+- [x] Real-time Chat
+- [ ] Posts
+- [ ] Media Upload
+- [ ] Wallet
+- [ ] Coin Purchase
+- [ ] Gifts
+- [ ] Admin Panel
+- [ ] Public Beta
+
+## 📄 License
+
+This project is for educational and personal development purposes.
