@@ -742,7 +742,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return LocalDB.getRankings(period, type);
   };
 
-  // NOTIFICATIONS
+  // NOTIFICATIONS - IMPROVED SYSTEM
   const fetchSupabaseNotifications = async (userId: string) => {
     if (!isSupabaseConfigured) return;
     try {
@@ -765,18 +765,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           created_at: d.created_at
         }));
         
-        // Merge with local ones to avoid missing simulated ones
+        // Get local notifications
         const localNotifs = LocalDB.getNotifications(userId);
         const merged = [...mappedNotifs];
+        
+        // Add local notifications that aren't in Supabase
         localNotifs.forEach(ln => {
           if (!merged.some(mn => mn.id === ln.id)) {
             merged.push(ln);
           }
         });
+        
+        // Sort by created_at descending
         setNotifications(merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
       }
     } catch (err) {
       console.error('Error fetching notifications from Supabase:', err);
+      // Fallback to local notifications
+      if (currentUser) {
+        setNotifications(LocalDB.getNotifications(currentUser.id));
+      }
     }
   };
 
@@ -785,6 +793,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const handleNewNotif = async (e: Event) => {
       const customEvent = e as CustomEvent<Notification>;
       const newNotif = customEvent.detail;
+      
+      console.log('[Notifications] New notification created:', newNotif);
       
       // If Supabase is configured and the notification target matches, write it to Supabase
       if (isSupabaseConfigured && currentUser && newNotif.user_id === currentUser.id) {
@@ -801,11 +811,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               action_url: newNotif.action_url,
               is_read: newNotif.is_read
             });
+          console.log('[Notifications] Synced to Supabase');
         } catch (err) {
-          console.error('Error uploading notification to Supabase:', err);
+          console.error('[Notifications] Error uploading to Supabase:', err);
         }
       }
-      refreshData();
+      
+      // Update local state immediately
+      setNotifications(prev => {
+        if (prev.some(n => n.id === newNotif.id)) return prev;
+        return [newNotif, ...prev];
+      });
     };
 
     window.addEventListener('connectx_new_notification', handleNewNotif);
@@ -816,8 +832,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // 2. Realtime subscription to Supabase notifications table
   useEffect(() => {
-    if (!currentUser || !isSupabaseConfigured) return;
+    if (!currentUser || !isSupabaseConfigured) {
+      console.log('[Notifications] Supabase not configured or no current user');
+      return;
+    }
 
+    console.log('[Notifications] Setting up realtime subscription for user:', currentUser.id);
+    
     fetchSupabaseNotifications(currentUser.id);
 
     const channel = supabase
@@ -831,7 +852,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           filter: `user_id=eq.${currentUser.id}`
         },
         (payload) => {
-          console.log('Realtime notification change:', payload);
+          console.log('[Notifications] Realtime change received:', payload.eventType);
+          
           if (payload.eventType === 'INSERT') {
             const newNotif = payload.new as any;
             // Only add if not already present in state
@@ -849,6 +871,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 action_url: newNotif.action_url || '',
                 created_at: newNotif.created_at
               };
+              console.log('[Notifications] New notification from Supabase:', mapped.message);
               return [mapped, ...prev];
             });
           } else if (payload.eventType === 'UPDATE') {
@@ -863,15 +886,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[Notifications] Subscription status:', status);
+      });
 
     return () => {
+      console.log('[Notifications] Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   }, [currentUser]);
 
   const markNotificationRead = async (notifId: string) => {
     LocalDB.markNotificationAsRead(notifId);
+    setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, is_read: true } : n));
+    
     if (isSupabaseConfigured && currentUser) {
       try {
         await supabase
@@ -882,12 +910,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         console.error('Error marking notification read in Supabase:', err);
       }
     }
-    refreshData();
   };
 
   const markAllNotificationsRead = async () => {
     if (!currentUser) return;
     LocalDB.markAllNotificationsAsRead(currentUser.id);
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    
     if (isSupabaseConfigured) {
       try {
         await supabase
@@ -898,12 +927,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         console.error('Error marking all notifications read in Supabase:', err);
       }
     }
-    refreshData();
   };
 
   const deleteNotification = async (notifId: string) => {
     if (!currentUser) return;
     LocalDB.deleteNotification(notifId);
+    setNotifications(prev => prev.filter(n => n.id !== notifId));
+    
     if (isSupabaseConfigured) {
       try {
         await supabase
@@ -914,7 +944,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         console.error('Error deleting notification in Supabase:', err);
       }
     }
-    refreshData();
   };
 
   // REPORT SYSTEM
